@@ -1,19 +1,35 @@
 package bot.zerotwo.kord.core.event
 
 import dev.kord.common.entity.Snowflake
-import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.gateway.ShardEvent
 import dev.kord.gateway.*
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 
 val dev.kord.core.event.Event.gateway: Gateway get() = this.kord.gateway.gateways.getValue(0)
 
 @Serializable
-data class AmqpEvent(@SerialName("shard_id") val shardId: Int, @Serializable(Event.Companion::class) val event: Event?)
+data class AmqpEvent(@SerialName("shard_id") val shardId: Int, @Serializable(EventSerializer::class) val event: Event?)
 
+object EventSerializer : KSerializer<Event> {
 
+    override val descriptor: SerialDescriptor
+        get() = Event.descriptor
+
+    override fun deserialize(decoder: Decoder): Event {
+        return Event.Companion.deserialize(decoder)!!
+    }
+
+    override fun serialize(encoder: Encoder, value: Event) {
+        error("not implemented")
+    }
+
+}
 
 fun dev.kord.core.event.Event.toGuildId(): Snowflake? {
     return this.guildId
