@@ -1,5 +1,3 @@
-package bot.zerotwo.kord.amqp
-
 import bot.zerotwo.kord.core.AmqpKord
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.core.on
@@ -7,19 +5,17 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Timeout
+import java.util.concurrent.TimeUnit
+import kotlin.test.Test
 
-object Test {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
+class IntegrationTest {
 
-    @JvmStatic
-    fun main(args: Array<String>) {
-        /*
-        val jsonParser = Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        }
-        val event = jsonParser.decodeFromString(Event.Companion, "{\"t\":\"USER_UPDATE\",\"d\":{\"id\":\"123\",\"username\":\"Tester\",\"discriminator\":\"1234\"},\"op\":0}") ?: return
-        println(event)*/
-
+    @Test
+    fun test() {
         GlobalScope.launch {
             val kord = AmqpKord(
                 System.getenv("TOKEN"),
@@ -39,6 +35,5 @@ object Test {
                 println("[$guild / $channel] $user: ${message.content}")
             }
         }.asCompletableFuture().get()
-
     }
 }
