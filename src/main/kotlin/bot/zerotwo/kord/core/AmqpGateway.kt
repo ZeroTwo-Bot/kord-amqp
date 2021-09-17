@@ -2,8 +2,10 @@
 
 package bot.zerotwo.kord.core
 
+import bot.zerotwo.kord.amqp.AmqpRequest
 import bot.zerotwo.kord.amqp.AmqpWrapper
 import bot.zerotwo.kord.core.event.getGuildId
+import dev.kord.core.Kord
 import dev.kord.core.gateway.MasterGateway
 import dev.kord.core.gateway.ShardEvent
 import dev.kord.gateway.*
@@ -50,8 +52,11 @@ class AmqpGateway(val amqp: AmqpWrapper) : Gateway {
     override suspend fun send(command: Command) {
         when (command) {
             is RequestGuildMembers -> throw UnsupportedOperationException("Client should not request members via gateway!")
-            is UpdateVoiceStatus -> TODO("Update voice state")
-            is UpdateStatus -> TODO("Update status. Globally?")
+            is UpdateVoiceStatus -> {
+                val shard = getShardByGuildId(guildId = command.guildId)
+                amqp.request(shard, AmqpRequest.UpdateVoiceState(command))
+            }
+            is UpdateStatus -> amqp.request(0, AmqpRequest.UpdatePresence(command)) // todo fanout/shardid
             else -> {
             }
         }

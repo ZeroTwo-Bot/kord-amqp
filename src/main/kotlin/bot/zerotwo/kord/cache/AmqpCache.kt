@@ -2,6 +2,8 @@ package bot.zerotwo.kord.cache
 
 import bot.zerotwo.kord.amqp.*
 import bot.zerotwo.kord.core.ContextKeys
+import bot.zerotwo.kord.core.getDefaultAppId
+import bot.zerotwo.kord.core.getShardByGuildId
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.cache.data.toData
@@ -551,10 +553,6 @@ class AmqpCacheSupplier(
 
     private val maxMembersPerRequest = 5000;
 
-    private fun getShardId(guildId: Snowflake): Int {
-        return ((guildId.value.shr(22).toLong()) % this.totalShards).toInt()
-    }
-
     override val guilds: Flow<Guild>
         get() = emptyFlow() // we dont get all guilds from amqp... that's a lotta traffic
     override val regions: Flow<Region>
@@ -785,7 +783,7 @@ class AmqpCacheSupplier(
     }
 
     override suspend fun getSelfOrNull(): User? {
-        val botId = getBotId() ?: kord.selfId
+        val botId = getBotId()
         return amqp.getUser(0, botId)
             ?.let { User(it.toData(), kord) }
     }
@@ -832,8 +830,8 @@ class AmqpCacheSupplier(
     }
 }
 
-private suspend fun getBotId(): Snowflake? {
-    return currentCoroutineContext()[ContextKeys.REQUEST_META_KEY]?.botId
+private suspend fun getBotId(): Snowflake {
+    return currentCoroutineContext()[ContextKeys.REQUEST_META_KEY]?.botId ?: getDefaultAppId()
 }
 
 private suspend fun getGuildIdFromContext(): Snowflake? {
@@ -850,4 +848,8 @@ private suspend fun <T> getContextData(key: String): T? {
 
 private suspend fun setContextData(key: String, data: Any?) {
     currentCoroutineContext()[ContextKeys.EVENT_CACHE]?.push(key, data)
+}
+
+private suspend fun getShardId(guildId: Snowflake): Int {
+    return getShardByGuildId(getBotId(), guildId)
 }

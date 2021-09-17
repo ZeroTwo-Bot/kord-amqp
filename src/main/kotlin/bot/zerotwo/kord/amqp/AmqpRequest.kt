@@ -1,5 +1,7 @@
 package bot.zerotwo.kord.amqp
 
+import dev.kord.gateway.UpdateStatus
+import dev.kord.gateway.UpdateVoiceStatus
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -24,6 +26,8 @@ sealed class AmqpRequest(
     @Serializable class GetStageInstance(@SerialName("d") val data: ByGuildIdAndId) : AmqpRequest(13)
     @Serializable class GetStageInstances(@SerialName("d") val data: ByGuildId) : AmqpRequest(14)
     @Serializable class GetThreadMembers(@SerialName("d") val data: ByGuildIdAndId) : AmqpRequest(50)
+    @Serializable class UpdatePresence(@SerialName("d") val data: UpdateStatus) : AmqpRequest(81)
+    @Serializable class UpdateVoiceState(@SerialName("d") val data: UpdateVoiceStatus) : AmqpRequest(82)
     @Serializable class GetStats : AmqpRequest(99)
 
 }

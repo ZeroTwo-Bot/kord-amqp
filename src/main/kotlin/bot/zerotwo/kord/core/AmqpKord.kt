@@ -74,6 +74,9 @@ class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: Stri
 
         val selfId = getBotIdFromToken(token)
 
+        setDefaultAppId(selfId)
+        setTotalShards(shards = totalShards)
+
         val resources = ClientResources(
             token,
             selfId,
