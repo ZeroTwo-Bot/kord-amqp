@@ -258,7 +258,7 @@ fun SnowflakedDiscordGuild.toData(): GuildData {
         discoverySplash = this.discoverySplash,
         ownerId = this.ownerId,
         permissions = this.permissions,
-        region = "us-east", // todo: remove
+        //region = "us-east", // todo: remove
         afkChannelId = this.afkChannelId,
         afkTimeout = this.afkTimeout,
         widgetEnabled = this.widgetEnabled,
