@@ -115,16 +115,11 @@ class AmqpWrapper(
     internal suspend fun eventConsumer(
         gateway: Gateway,
         events: MutableSharedFlow<ShardEvent>,
-        exchange: String,
-        subscribedEvents: List<String>
+        eventQueue: String,
     ) {
         runSuspended {
-            val queue = channel.queueDeclare("", false, true, true, mapOf()).queue
-            for (event in subscribedEvents) {
-                channel.queueBind(queue, exchange, event)
-            }
             channel.basicConsume(
-                queue,
+                eventQueue,
                 true,
                 { _: String?, delivery: Delivery ->
                     GlobalScope.launch {
