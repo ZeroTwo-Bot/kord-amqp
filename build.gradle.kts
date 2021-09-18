@@ -62,22 +62,28 @@ tasks {
     }
 }
 
-/*
+
 publishing {
     repositories {
+        mavenLocal()
+        /*
         maven {
-            url = uri("https://nexus.melijn.com/repository/maven-releases/")
+            url = uri("https://nexus.zerotwo.bot/repository/maven-releases/")
             credentials {
-                username = property("melijnPublisher").toString()
-                password = property("melijnPassword").toString()
+                username = property("publishUsername").toString()
+                password = property("publishPassword").toString()
             }
         }
+         */
     }
+
     publications {
-        register("mavenJava", MavenPublication::class) {
-            from(components["java"])
-            artifact(sourcesJar.get())
+        create<MavenPublication>("maven") {
+            groupId = groupId
+            artifactId = artifactId
+            version = version
+
+            from(components["kotlin"])
         }
     }
 }
- */
