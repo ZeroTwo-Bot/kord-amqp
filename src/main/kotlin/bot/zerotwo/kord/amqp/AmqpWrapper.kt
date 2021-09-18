@@ -103,11 +103,15 @@ class AmqpWrapper(
 
     private fun consumer() {
         this.channel.basicConsume(this.workerQueue, true, { _: String?, delivery: Delivery ->
-            GlobalScope.launch {
-                runSuspended {
-                    correlationFlows[delivery.properties.correlationId]
-                        ?.emit(decodeToString(delivery.properties.contentType, delivery.body))
+            if (delivery.properties.type != "200") {
+                GlobalScope.launch {
+                    runSuspended {
+                        correlationFlows[delivery.properties.correlationId]
+                            ?.emit(decodeToString(delivery.properties.contentType, delivery.body))
+                    }
                 }
+            } else {
+                throw IllegalStateException("Response type was not 200: ${delivery.properties.type}")
             }
         }, { _: String? -> })
     }
