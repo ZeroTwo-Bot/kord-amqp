@@ -5,6 +5,7 @@ package bot.zerotwo.kord.amqp
 import bot.zerotwo.kord.core.event.AmqpEvent
 import com.rabbitmq.client.*
 import dev.kord.core.gateway.ShardEvent
+import dev.kord.core.kordLogger
 import dev.kord.gateway.Gateway
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
@@ -15,6 +16,8 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.ByteArrayInputStream
+import java.lang.RuntimeException
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicLong
 import java.util.zip.InflaterInputStream
 import kotlin.time.Duration
@@ -48,7 +51,7 @@ class AmqpWrapper(
     }
 
     private val cnt = AtomicLong(0)
-    private val correlationFlows = mutableMapOf<String, MutableSharedFlow<String>>()
+    private val correlationFlows = mutableMapOf<String, MutableSharedFlow<StringOrError>>()
 
 
     suspend fun recreateChannel() {
@@ -72,7 +75,8 @@ class AmqpWrapper(
             .replyTo(this.workerQueue)
             .build()
         val req = Json.encodeToString(request)
-        val flow = MutableSharedFlow<String>(
+        println("Requesting $req") // todo remove
+        val flow = MutableSharedFlow<StringOrError>(
             replay = 1,
             extraBufferCapacity = 0,
             onBufferOverflow = BufferOverflow.DROP_OLDEST
@@ -86,7 +90,18 @@ class AmqpWrapper(
             flow.first()
         }
         correlationFlows.remove(id)
-        return result
+
+        if (result == null) {
+            throw TimeoutException("The cache did not respond in time. Consider increasing the timeout?")
+        }
+        if (result.error != null) {
+            throw result.error
+        }
+        return if (result.notFound) {
+            null
+        } else {
+            result.data!!
+        }
     }
 
     private suspend fun decodeToString(contentType: String, data: ByteArray): String {
@@ -103,15 +118,25 @@ class AmqpWrapper(
 
     private fun consumer() {
         this.channel.basicConsume(this.workerQueue, true, { _: String?, delivery: Delivery ->
-            if (delivery.properties.type == "200") {
-                GlobalScope.launch {
-                    runSuspended {
+            GlobalScope.launch {
+                when (delivery.properties.type) {
+                    "200" -> {
+                        val decodedString = runSuspended {
+                            decodeToString(delivery.properties.contentType, delivery.body)
+                        }
                         correlationFlows[delivery.properties.correlationId]
-                            ?.emit(decodeToString(delivery.properties.contentType, delivery.body))
+                            ?.emit(StringOrError(data = decodedString))
+                    }
+                    "404" -> {
+                        correlationFlows[delivery.properties.correlationId]
+                            ?.emit(StringOrError(notFound = true))
+
+                    }
+                    else -> {
+                        correlationFlows[delivery.properties.correlationId]
+                            ?.emit(StringOrError(error = IllegalStateException("Response type was not 200: ${delivery.properties.type}")))
                     }
                 }
-            } else {
-                throw IllegalStateException("Response type was not 200: ${delivery.properties.type}")
             }
         }, { _: String? -> })
     }
@@ -138,6 +163,8 @@ class AmqpWrapper(
                 { _: String? -> })
         }
     }
+
+    inner class StringOrError(val data: String? = null, val notFound: Boolean = false, val error: Throwable? = null)
 }
 
 private suspend fun <T> runSuspended(
