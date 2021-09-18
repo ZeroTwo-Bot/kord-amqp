@@ -103,7 +103,7 @@ class AmqpWrapper(
 
     private fun consumer() {
         this.channel.basicConsume(this.workerQueue, true, { _: String?, delivery: Delivery ->
-            if (delivery.properties.type != "200") {
+            if (delivery.properties.type == "200") {
                 GlobalScope.launch {
                     runSuspended {
                         correlationFlows[delivery.properties.correlationId]
