@@ -18,6 +18,7 @@ configure<JavaPluginExtension> {
 repositories {
     mavenLocal()
     mavenCentral()
+    maven("https://nexus.zerotwo.bot/repository/m2-snapshots-public/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
 }
 
@@ -38,7 +39,7 @@ dependencies {
 
     // Kord
     //implementation("dev.kord:kord-core:0.8.0-M5")
-    implementation("dev.kord:kord-core:undefined")
+    implementation("dev.kord:kord-core:zerotwo-SNAPSHOT")
 }
 
 tasks.test {
@@ -64,26 +65,23 @@ tasks {
 
 
 publishing {
-    repositories {
-        mavenLocal()
-        /*
-        maven {
-            url = uri("https://nexus.zerotwo.bot/repository/maven-releases/")
-            credentials {
-                username = property("publishUsername").toString()
-                password = property("publishPassword").toString()
-            }
-        }
-         */
-    }
-
     publications {
-        create<MavenPublication>("maven") {
+        create<MavenPublication>("kord-amqp") {
             groupId = groupId
             artifactId = artifactId
-            version = version
+            version = "$version-SNAPSHOT"
 
             from(components["kotlin"])
+
+            repositories {
+                maven {
+                    url = uri("https://nexus.zerotwo.bot/repository/m2-snapshots-public/")
+                    credentials {
+                        username = System.getenv("NEXUS_USER")
+                        password = System.getenv("NEXUS_PASSWORD")
+                    }
+                }
+            }
         }
     }
 }
