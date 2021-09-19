@@ -5,7 +5,10 @@ import bot.zerotwo.kord.cache.AmqpCacheStrategy
 import bot.zerotwo.kord.core.event.toGuildId
 import dev.kord.cache.api.DataCache
 import dev.kord.common.annotation.KordExperimental
+import dev.kord.common.entity.DiscordUser
 import dev.kord.common.entity.Snowflake
+import dev.kord.common.entity.optional.Optional
+import dev.kord.common.entity.optional.OptionalBoolean
 import dev.kord.core.ClientResources
 import dev.kord.core.Kord
 import dev.kord.core.builder.kord.Shards
@@ -13,6 +16,8 @@ import dev.kord.core.event.Event
 import dev.kord.core.gateway.ShardEvent
 import dev.kord.core.supplier.EntitySupplyStrategy
 import dev.kord.gateway.Intents
+import dev.kord.gateway.Ready
+import dev.kord.gateway.ReadyData
 import dev.kord.rest.ratelimit.ExclusionRequestRateLimiter
 import dev.kord.rest.request.KtorRequestHandler
 import dev.kord.rest.request.RequestHandler
@@ -87,6 +92,32 @@ class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: Stri
         val rest = RestClient(handlerBuilder(resources))
 
         val masterGateway = AmqpMasterGateway(shardEventFlow, mapOf(0 to amqpGateway))
+
+        shardEventFlow.emit(
+            ShardEvent(
+                Ready(
+                    ReadyData(
+                        version = 9,
+                        user = DiscordUser(
+                            id = selfId,
+                            username = "",
+                            discriminator = "",
+                            bot = OptionalBoolean.Value(true),
+                            avatar = null
+                        ),
+                        privateChannels = listOf(),
+                        guilds = listOf(),
+                        sessionId = "",
+                        geoOrderedRtcRegions = Optional.Missing(),
+                        application = Optional.Missing(),
+                        guildHashes = Optional.Missing(),
+                        shard = Optional.Missing(),
+                        traces = listOf()
+                    ), 0
+                ), masterGateway.gateways.getValue(0), 0
+            )
+        )
+
         return Kord(
             resources,
             DataCache.none(),
