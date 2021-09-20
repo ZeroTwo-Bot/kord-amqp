@@ -816,7 +816,12 @@ class AmqpCacheSupplier(
     }
 
     override suspend fun getUserOrNull(id: Snowflake): User? {
-        TODO("Find User")
+        // todo implement properly, even tho this probably is fine
+        val shardId = getShardIdFromContext()
+            ?: getGuildIdFromContext()?.let { getShardId(it) }
+            ?: 0
+        return amqp.getUser(shardId, id)
+            ?.let { User(it.toData(), kord) }
     }
 
     override suspend fun getWebhookOrNull(id: Snowflake): Webhook? {

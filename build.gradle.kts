@@ -34,7 +34,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2")
 
     // Amqp
-    implementation("com.rabbitmq:amqp-client:5.9.0")
+    implementation("com.rabbitmq:amqp-client:5.13.1")
 
     // Kord
     //implementation("dev.kord:kord-core:0.8.0-M5")
