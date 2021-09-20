@@ -16,7 +16,6 @@ configure<JavaPluginExtension> {
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
     maven("https://nexus.zerotwo.bot/repository/m2-snapshots-public/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
