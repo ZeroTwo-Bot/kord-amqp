@@ -15,6 +15,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.lang.RuntimeException
 import java.util.concurrent.TimeoutException
@@ -48,6 +49,7 @@ class AmqpWrapper(
                 return@runSuspended amqp
             }
         }
+        val log = LoggerFactory.getLogger(AmqpWrapper::class.java)
     }
 
     private val cnt = AtomicLong(0)
@@ -153,10 +155,14 @@ class AmqpWrapper(
                 { _: String?, delivery: Delivery ->
                     GlobalScope.launch {
                         val json = decodeToString("application/octet-stream", delivery.body)
-                        val event: AmqpEvent = Const.JSON.decodeFromString(json)
-                        event.event?.let {
-                            val shardEvent = ShardEvent(it, gateway, event.shardId)
-                            events.emit(shardEvent)
+                        try {
+                            val event: AmqpEvent = Const.JSON.decodeFromString(json)
+                            event.event?.let {
+                                val shardEvent = ShardEvent(it, gateway, event.shardId)
+                                events.emit(shardEvent)
+                            }
+                        } catch (ex: Throwable) {
+                            log.error("An error occurred when trying to dispatch JSON event:\n{}", json, ex)
                         }
                     }
                 },
