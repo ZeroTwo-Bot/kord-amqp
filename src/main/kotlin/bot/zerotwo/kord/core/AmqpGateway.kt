@@ -26,18 +26,10 @@ class AmqpMasterGateway(
         get() = Duration.ZERO
     override val events: Flow<ShardEvent>
         get() = shardEventFlow
-            .onEach {
-                currentCoroutineContext() + RequestMeta(
-                    ContextKeys.REQUEST_META_KEY,
-                    it.getGuildId(),
-                    it.shard,
-                    null
-                ) + EventCache(ContextKeys.EVENT_CACHE)
-            }
 
 }
 
-class AmqpGateway(val amqp: AmqpWrapper) : Gateway {
+class AmqpGateway(private val amqp: AmqpWrapper) : Gateway {
 
     override val coroutineContext: CoroutineContext
         get() = SupervisorJob() + Dispatchers.Default
