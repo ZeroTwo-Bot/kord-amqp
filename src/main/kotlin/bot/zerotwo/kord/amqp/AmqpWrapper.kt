@@ -17,10 +17,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
-import java.lang.RuntimeException
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicLong
 import java.util.zip.InflaterInputStream
+import kotlin.RuntimeException
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 
@@ -73,13 +73,13 @@ class AmqpWrapper(
     }
 
     suspend fun request(shardId: Int, request: AmqpRequest): String? {
+        val req = Json.encodeToString(request)
+        log.debug("Requesting $req", RuntimeException())
         val id = "req-${cnt.getAndIncrement()}"
         val props = AMQP.BasicProperties.Builder()
             .correlationId(id)
             .replyTo(this.workerQueue)
             .build()
-        val req = Json.encodeToString(request)
-        println("Requesting $req") // todo remove
         val flow = MutableSharedFlow<StringOrError>(
             replay = 1,
             extraBufferCapacity = 0,
