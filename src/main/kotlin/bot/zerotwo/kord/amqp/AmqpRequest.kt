@@ -1,5 +1,6 @@
 package bot.zerotwo.kord.amqp
 
+import dev.kord.common.entity.Snowflake
 import dev.kord.gateway.UpdateStatus
 import dev.kord.gateway.UpdateVoiceStatus
 import kotlinx.serialization.SerialName
@@ -25,6 +26,7 @@ sealed class AmqpRequest(
     @Serializable class GetEmojis(@SerialName("d") val data: ByGuildId) : AmqpRequest(12)
     @Serializable class GetStageInstance(@SerialName("d") val data: ByGuildIdAndId) : AmqpRequest(13)
     @Serializable class GetStageInstances(@SerialName("d") val data: ByGuildId) : AmqpRequest(14)
+    @Serializable class GetUsers(@SerialName("d") val data: BySnowflakes) : AmqpRequest(15)
     @Serializable class GetThreadMembers(@SerialName("d") val data: ByGuildIdAndId) : AmqpRequest(50)
     @Serializable class UpdatePresence(@SerialName("d") val data: UpdateStatus) : AmqpRequest(81)
     @Serializable class UpdateVoiceState(@SerialName("d") val data: UpdateVoiceStatus) : AmqpRequest(82)
@@ -48,3 +50,6 @@ data class ByGuildIdAndId(val id: String, @SerialName("gid") val guildId: String
 
 @Serializable
 data class ByGuildIdPaginated(@SerialName("gid") val guild_id: String, val start: String? = null, val end: String? = null, val limit: Int? = null) : AmqpRequestData()
+
+@Serializable
+data class BySnowflakes(@SerialName("ids") val snowflakes: List<Snowflake>) : AmqpRequestData()

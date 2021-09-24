@@ -28,11 +28,12 @@ class AmqpWrapper(
     private val cacheExchange: String,
     private val connection: Connection,
     private var channel: Channel,
-    private var workerQueue: String
+    private var workerQueue: String,
+    private val timeoutMillis: Long = 1000
 ) {
 
     companion object {
-        suspend fun create(uri: String, exchange: String): AmqpWrapper {
+        suspend fun create(uri: String, exchange: String, timeoutMillis: Long = 1000): AmqpWrapper {
             val connectionFactory = ConnectionFactory()
             connectionFactory.setUri(uri)
             return runSuspended {
@@ -43,7 +44,8 @@ class AmqpWrapper(
                     exchange,
                     connection,
                     channel,
-                    queue
+                    queue,
+                    timeoutMillis
                 )
                 amqp.consumer();
                 return@runSuspended amqp
@@ -88,7 +90,7 @@ class AmqpWrapper(
         runSuspended {
             channel.basicPublish(cacheExchange, shardId.toString(), props, req.toByteArray())
         }
-        val result = withTimeoutOrNull(Duration.Companion.milliseconds(500)) {
+        val result = withTimeoutOrNull(Duration.Companion.milliseconds(timeoutMillis)) {
             flow.first()
         }
         correlationFlows.remove(id)

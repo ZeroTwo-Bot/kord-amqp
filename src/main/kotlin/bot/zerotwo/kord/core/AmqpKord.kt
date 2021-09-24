@@ -69,9 +69,11 @@ class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: Stri
         AmqpCacheStrategy(amqp, null, totalShards)
     }
 
+    var requestTimeoutMillis: Long = 1000
+
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun build(): Kord {
-        val amqp = AmqpWrapper.create(amqpUri, cacheExchange)
+        val amqp = AmqpWrapper.create(amqpUri, cacheExchange, requestTimeoutMillis)
         val amqpGateway = AmqpGateway(amqp)
         amqp.eventConsumer(amqpGateway, shardEventFlow, eventQueue)
 

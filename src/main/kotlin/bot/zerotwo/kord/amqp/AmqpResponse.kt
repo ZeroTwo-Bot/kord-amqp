@@ -1,4 +1,5 @@
 @file:OptIn(ExperimentalSerializationApi::class)
+
 package bot.zerotwo.kord.amqp
 
 import dev.kord.common.entity.*
@@ -142,7 +143,19 @@ suspend fun AmqpWrapper.getStageInstances(shardId: Int, guildId: Snowflake): Arr
     return json?.let { Const.JSON.decodeFromString(json) }
 }
 
-suspend fun AmqpWrapper.getThreadMembers(shardId: Int, guildId: Snowflake, threadId: Snowflake): Array<DiscordThreadMember>? {
+suspend fun AmqpWrapper.getUsers(shardId: Int, vararg snowflakes: Snowflake): Array<DiscordUser>? {
+    val json = request(
+        shardId,
+        AmqpRequest.GetUsers(BySnowflakes(snowflakes.toList()))
+    )
+    return json?.let { Const.JSON.decodeFromString(json) }
+}
+
+suspend fun AmqpWrapper.getThreadMembers(
+    shardId: Int,
+    guildId: Snowflake,
+    threadId: Snowflake
+): Array<DiscordThreadMember>? {
     val json = request(
         shardId,
         AmqpRequest.GetThreadMembers(ByGuildIdAndId(guildId = guildId.asString, id = threadId.asString))
@@ -254,7 +267,7 @@ fun SnowflakedDiscordGuild.toData(): GuildData {
         name = this.name,
         icon = this.icon,
         iconHash = this.iconHash,
-        splash= this.splash,
+        splash = this.splash,
         discoverySplash = this.discoverySplash,
         ownerId = this.ownerId,
         permissions = this.permissions,
@@ -298,5 +311,6 @@ fun SnowflakedDiscordGuild.toData(): GuildData {
 
 @Serializable
 data class TotalStats(val total: Stats, @SerialName("shard_stats") val shardStats: Map<Int, Stats>)
+
 @Serializable
 data class Stats(val guilds: Int, val unavailable: Int)
