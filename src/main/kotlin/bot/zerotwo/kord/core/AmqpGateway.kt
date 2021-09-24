@@ -18,6 +18,7 @@ import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 
 class AmqpMasterGateway(
+    internal val amqp: AmqpWrapper,
     private val shardEventFlow: MutableSharedFlow<ShardEvent>,
     override val gateways: Map<Int, Gateway>
 ) : MasterGateway {
