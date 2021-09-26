@@ -43,16 +43,23 @@ suspend inline fun AmqpKord(
     token: String,
     totalShards: Int,
     amqpUri: String,
-    eventQueue: String,
+    events: Array<String>,
     builder: AmqpKordBuilder.() -> Unit = {}
 ): Kord {
     contract { callsInPlace(builder, InvocationKind.EXACTLY_ONCE) }
-    return AmqpKordBuilder(token, totalShards, amqpUri, eventQueue).apply(builder).build()
+    return AmqpKordBuilder(token, totalShards, amqpUri, events).apply(builder).build()
 }
 
-class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: String, val eventQueue: String) {
+class AmqpKordBuilder(
+    private val token: String,
+    private val totalShards: Int,
+    private val amqpUri: String,
+    private val events: Array<String>
+) {
 
     var cacheExchange: String = "cache"
+
+    var eventExchange: String = "events"
 
     var eventFlow: MutableSharedFlow<Event> = MutableSharedFlow(extraBufferCapacity = Int.MAX_VALUE)
 
@@ -75,7 +82,7 @@ class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: Stri
     suspend fun build(): Kord {
         val amqp = AmqpWrapper.create(amqpUri, cacheExchange, requestTimeoutMillis)
         val amqpGateway = AmqpGateway(amqp)
-        amqp.eventConsumer(amqpGateway, shardEventFlow, eventQueue)
+        amqp.eventConsumer(amqpGateway, shardEventFlow, eventExchange, events)
 
         val selfId = getBotIdFromToken(token)
 

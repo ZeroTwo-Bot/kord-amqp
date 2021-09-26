@@ -147,10 +147,15 @@ class AmqpWrapper(
 
     internal suspend fun eventConsumer(
         gateway: Gateway,
-        events: MutableSharedFlow<ShardEvent>,
-        eventQueue: String,
+        eventFlow: MutableSharedFlow<ShardEvent>,
+        eventExchange: String,
+        events: Array<String>,
     ) {
         runSuspended {
+            val eventQueue = channel.queueDeclare("", false, true, true, HashMap()).queue
+            events.forEach {
+                channel.queueBind(eventQueue, eventExchange, it)
+            }
             channel.basicConsume(
                 eventQueue,
                 true,
@@ -161,7 +166,7 @@ class AmqpWrapper(
                             val event: AmqpEvent = Const.JSON.decodeFromString(json)
                             event.event?.let {
                                 val shardEvent = ShardEvent(it, gateway, event.shardId)
-                                events.emit(shardEvent)
+                                eventFlow.emit(shardEvent)
                             }
                         } catch (ex: Throwable) {
                             log.error("An error occurred when trying to dispatch JSON event:\n{}", json, ex)
