@@ -2,6 +2,7 @@ package bot.zerotwo.kord.core
 
 import bot.zerotwo.kord.amqp.AmqpWrapper
 import bot.zerotwo.kord.cache.AmqpCacheStrategy
+import bot.zerotwo.kord.core.event.EventBinding
 import bot.zerotwo.kord.core.event.toGuildId
 import dev.kord.cache.api.DataCache
 import dev.kord.common.annotation.KordExperimental
@@ -43,7 +44,7 @@ suspend inline fun AmqpKord(
     token: String,
     totalShards: Int,
     amqpUri: String,
-    events: Array<String>,
+    events: Array<EventBinding>,
     builder: AmqpKordBuilder.() -> Unit = {}
 ): Kord {
     contract { callsInPlace(builder, InvocationKind.EXACTLY_ONCE) }
@@ -54,7 +55,7 @@ class AmqpKordBuilder(
     private val token: String,
     private val totalShards: Int,
     private val amqpUri: String,
-    private val events: Array<String>
+    private val events: Array<EventBinding>
 ) {
 
     var cacheExchange: String = "cache"

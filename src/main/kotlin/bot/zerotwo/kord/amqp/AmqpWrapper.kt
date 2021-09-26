@@ -3,6 +3,7 @@
 package bot.zerotwo.kord.amqp
 
 import bot.zerotwo.kord.core.event.AmqpEvent
+import bot.zerotwo.kord.core.event.EventBinding
 import com.rabbitmq.client.*
 import dev.kord.core.gateway.ShardEvent
 import dev.kord.core.kordLogger
@@ -149,12 +150,12 @@ class AmqpWrapper(
         gateway: Gateway,
         eventFlow: MutableSharedFlow<ShardEvent>,
         eventExchange: String,
-        events: Array<String>,
+        events: Array<EventBinding>,
     ) {
         runSuspended {
             val eventQueue = channel.queueDeclare("", false, true, true, HashMap()).queue
             events.forEach {
-                channel.queueBind(eventQueue, eventExchange, it)
+                channel.queueBind(eventQueue, eventExchange, it.ordinal.toString())
             }
             channel.basicConsume(
                 eventQueue,
