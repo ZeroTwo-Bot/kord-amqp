@@ -19,6 +19,7 @@ repositories {
     mavenCentral()
     maven("https://nexus.zerotwo.bot/repository/m2-snapshots-public/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
+    mavenLocal()
 }
 
 val kotlinX = "1.5.2-native-mt" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
@@ -38,7 +39,8 @@ dependencies {
 
     // Kord
     //implementation("dev.kord:kord-core:0.8.0-M5")
-    implementation("dev.kord:kord-core:zerotwo-SNAPSHOT")
+    //implementation("dev.kord:kord-core:zerotwo-SNAPSHOT")
+    implementation("dev.kord:kord-core:0.8.x-SNAPSHOT")
 }
 
 tasks.test {

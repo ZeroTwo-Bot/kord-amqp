@@ -23,9 +23,6 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
-
-val dev.kord.core.event.Event.gateway: Gateway get() = this.kord.gateway.gateways.getValue(0)
-
 @Serializable
 data class AmqpEvent(@SerialName("shard_id") val shardId: Int, @Serializable(EventSerializer::class) val event: Event?)
 
