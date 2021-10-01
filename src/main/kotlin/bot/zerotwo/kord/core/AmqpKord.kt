@@ -2,8 +2,7 @@ package bot.zerotwo.kord.core
 
 import bot.zerotwo.kord.amqp.AmqpWrapper
 import bot.zerotwo.kord.cache.AmqpCacheStrategy
-import bot.zerotwo.kord.core.event.Interceptor
-import bot.zerotwo.kord.core.event.toGuildId
+import bot.zerotwo.kord.core.event.getGuildId
 import dev.kord.cache.api.DataCache
 import dev.kord.common.annotation.KordExperimental
 import dev.kord.common.entity.DiscordUser
@@ -15,6 +14,7 @@ import dev.kord.core.Kord
 import dev.kord.core.builder.kord.Shards
 import dev.kord.core.event.Event
 import dev.kord.core.gateway.ShardEvent
+import dev.kord.core.gateway.handler.DefaultGatewayEventInterceptor
 import dev.kord.core.supplier.EntitySupplyStrategy
 import dev.kord.gateway.Intents
 import dev.kord.gateway.Ready
@@ -119,16 +119,24 @@ class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: Stri
             )
         )
 
+        val cache = DataCache.none()
         return Kord(
             resources,
-            DataCache.none(),
+            cache,
             masterGateway,
             rest,
             selfId,
             eventFlow,
             defaultDispatcher,
         ) {
-            Interceptor(this, masterGateway, eventFlow)
+            DefaultGatewayEventInterceptor(cache) { event, kord ->
+                RequestMeta(
+                    ContextKeys.REQUEST_META_KEY,
+                    event.getGuildId(),
+                    event.shard,
+                    kord.selfId
+                ) + EventCache(ContextKeys.EVENT_CACHE)
+            }
         }
     }
 }

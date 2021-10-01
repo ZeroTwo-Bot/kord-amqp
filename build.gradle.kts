@@ -40,7 +40,7 @@ dependencies {
     // Kord
     //implementation("dev.kord:kord-core:0.8.0-M5")
     //implementation("dev.kord:kord-core:zerotwo-SNAPSHOT")
-    implementation("dev.kord:kord-core:poc-gei")
+    implementation("dev.kord:kord-core:0.8.x-SNAPSHOT")
 }
 
 tasks.test {

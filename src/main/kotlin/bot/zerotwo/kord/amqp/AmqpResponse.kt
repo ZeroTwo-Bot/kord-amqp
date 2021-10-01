@@ -232,22 +232,6 @@ data class SnowflakedDiscordGuild(
     val nsfwLevel: NsfwLevel
 )
 
-fun DiscordRole.toData(guildId: Snowflake): RoleData {
-    return RoleData.from(DiscordGuildRole(guildId, this))
-}
-
-fun DiscordEmoji.toData(guildId: Snowflake, id: Snowflake): EmojiData {
-    return EmojiData.from(guildId, id, this)
-}
-
-fun DiscordStageInstance.toData(): StageInstanceData {
-    return StageInstanceData.from(this)
-}
-
-fun DiscordThreadMember.toData(threadId: Snowflake?): ThreadMemberData {
-    return ThreadMemberData.from(this, threadId)
-}
-
 fun SnowflakedDiscordGuild.toData(): GuildData {
     return GuildData(
         id = this.id,
@@ -258,7 +242,7 @@ fun SnowflakedDiscordGuild.toData(): GuildData {
         discoverySplash = this.discoverySplash,
         ownerId = this.ownerId,
         permissions = this.permissions,
-        //region = "us-east", // todo: remove
+        region = "us-east", // todo: deprecated
         afkChannelId = this.afkChannelId,
         afkTimeout = this.afkTimeout,
         widgetEnabled = this.widgetEnabled,
