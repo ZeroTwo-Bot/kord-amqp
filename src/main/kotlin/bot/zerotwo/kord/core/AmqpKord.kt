@@ -2,6 +2,7 @@ package bot.zerotwo.kord.core
 
 import bot.zerotwo.kord.amqp.AmqpWrapper
 import bot.zerotwo.kord.cache.AmqpCacheStrategy
+import bot.zerotwo.kord.core.event.EventBinding
 import bot.zerotwo.kord.core.event.getGuildId
 import dev.kord.cache.api.DataCache
 import dev.kord.common.annotation.KordExperimental
@@ -44,16 +45,23 @@ suspend inline fun AmqpKord(
     token: String,
     totalShards: Int,
     amqpUri: String,
-    eventQueue: String,
+    events: Array<EventBinding>,
     builder: AmqpKordBuilder.() -> Unit = {}
 ): Kord {
     contract { callsInPlace(builder, InvocationKind.EXACTLY_ONCE) }
-    return AmqpKordBuilder(token, totalShards, amqpUri, eventQueue).apply(builder).build()
+    return AmqpKordBuilder(token, totalShards, amqpUri, events).apply(builder).build()
 }
 
-class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: String, val eventQueue: String) {
+class AmqpKordBuilder(
+    private val token: String,
+    private val totalShards: Int,
+    private val amqpUri: String,
+    private val events: Array<EventBinding>
+) {
 
     var cacheExchange: String = "cache"
+
+    var eventExchange: String = "events"
 
     var eventFlow: MutableSharedFlow<Event> = MutableSharedFlow(extraBufferCapacity = Int.MAX_VALUE)
 
@@ -70,11 +78,13 @@ class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: Stri
         AmqpCacheStrategy(amqp, null, totalShards)
     }
 
+    var requestTimeoutMillis: Long = 1000
+
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun build(): Kord {
-        val amqp = AmqpWrapper.create(amqpUri, cacheExchange)
+        val amqp = AmqpWrapper.create(amqpUri, cacheExchange, requestTimeoutMillis)
         val amqpGateway = AmqpGateway(amqp)
-        amqp.eventConsumer(amqpGateway, shardEventFlow, eventQueue)
+        amqp.eventConsumer(amqpGateway, shardEventFlow, eventExchange, events)
 
         val selfId = getBotIdFromToken(token)
 
@@ -92,7 +102,7 @@ class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: Stri
 
         val rest = RestClient(handlerBuilder(resources))
 
-        val masterGateway = AmqpMasterGateway(shardEventFlow, mapOf(0 to amqpGateway))
+        val masterGateway = AmqpMasterGateway(amqp, shardEventFlow, mapOf(0 to amqpGateway))
 
         shardEventFlow.emit(
             ShardEvent(
@@ -139,6 +149,10 @@ class AmqpKordBuilder(val token: String, val totalShards: Int, val amqpUri: Stri
             }
         }
     }
+}
+
+fun Kord.getAmqp(): AmqpWrapper {
+    return (this.gateway as AmqpMasterGateway).amqp
 }
 
 internal fun getBotIdFromToken(token: String): Snowflake {

@@ -3,6 +3,7 @@
 package bot.zerotwo.kord.amqp
 
 import bot.zerotwo.kord.core.event.AmqpEvent
+import bot.zerotwo.kord.core.event.EventBinding
 import com.rabbitmq.client.*
 import dev.kord.core.gateway.ShardEvent
 import dev.kord.core.kordLogger
@@ -17,10 +18,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
-import java.lang.RuntimeException
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicLong
 import java.util.zip.InflaterInputStream
+import kotlin.RuntimeException
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 
@@ -28,11 +29,12 @@ class AmqpWrapper(
     private val cacheExchange: String,
     private val connection: Connection,
     private var channel: Channel,
-    private var workerQueue: String
+    private var workerQueue: String,
+    private val timeoutMillis: Long = 1000
 ) {
 
     companion object {
-        suspend fun create(uri: String, exchange: String): AmqpWrapper {
+        suspend fun create(uri: String, exchange: String, timeoutMillis: Long = 1000): AmqpWrapper {
             val connectionFactory = ConnectionFactory()
             connectionFactory.setUri(uri)
             return runSuspended {
@@ -43,7 +45,8 @@ class AmqpWrapper(
                     exchange,
                     connection,
                     channel,
-                    queue
+                    queue,
+                    timeoutMillis
                 )
                 amqp.consumer();
                 return@runSuspended amqp
@@ -71,13 +74,13 @@ class AmqpWrapper(
     }
 
     suspend fun request(shardId: Int, request: AmqpRequest): String? {
+        val req = Json.encodeToString(request)
+        log.debug("Requesting $req", RuntimeException())
         val id = "req-${cnt.getAndIncrement()}"
         val props = AMQP.BasicProperties.Builder()
             .correlationId(id)
             .replyTo(this.workerQueue)
             .build()
-        val req = Json.encodeToString(request)
-        println("Requesting $req") // todo remove
         val flow = MutableSharedFlow<StringOrError>(
             replay = 1,
             extraBufferCapacity = 0,
@@ -88,7 +91,7 @@ class AmqpWrapper(
         runSuspended {
             channel.basicPublish(cacheExchange, shardId.toString(), props, req.toByteArray())
         }
-        val result = withTimeoutOrNull(Duration.Companion.milliseconds(500)) {
+        val result = withTimeoutOrNull(Duration.Companion.milliseconds(timeoutMillis)) {
             flow.first()
         }
         correlationFlows.remove(id)
@@ -145,10 +148,15 @@ class AmqpWrapper(
 
     internal suspend fun eventConsumer(
         gateway: Gateway,
-        events: MutableSharedFlow<ShardEvent>,
-        eventQueue: String,
+        eventFlow: MutableSharedFlow<ShardEvent>,
+        eventExchange: String,
+        events: Array<EventBinding>,
     ) {
         runSuspended {
+            val eventQueue = channel.queueDeclare("", false, true, true, HashMap()).queue
+            events.forEach {
+                channel.queueBind(eventQueue, eventExchange, it.ordinal.toString())
+            }
             channel.basicConsume(
                 eventQueue,
                 true,
@@ -159,7 +167,7 @@ class AmqpWrapper(
                             val event: AmqpEvent = Const.JSON.decodeFromString(json)
                             event.event?.let {
                                 val shardEvent = ShardEvent(it, gateway, event.shardId)
-                                events.emit(shardEvent)
+                                eventFlow.emit(shardEvent)
                             }
                         } catch (ex: Throwable) {
                             log.error("An error occurred when trying to dispatch JSON event:\n{}", json, ex)
