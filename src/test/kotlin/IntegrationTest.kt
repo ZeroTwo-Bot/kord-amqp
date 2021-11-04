@@ -21,7 +21,6 @@ class IntegrationTest {
                 System.getenv("TOKEN"),
                 System.getenv("TOTAL_SHARDS").toInt(),
                 System.getenv("AMQP_URI"),
-                listOf("MESSAGE_CREATE", "INTERACTION_CREATE")
             )
 
             kord.on<MessageCreateEvent> {

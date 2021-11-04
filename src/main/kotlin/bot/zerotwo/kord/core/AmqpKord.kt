@@ -2,7 +2,6 @@ package bot.zerotwo.kord.core
 
 import bot.zerotwo.kord.amqp.AmqpWrapper
 import bot.zerotwo.kord.cache.AmqpCacheStrategy
-import bot.zerotwo.kord.core.event.EventBinding
 import bot.zerotwo.kord.core.event.getGuildId
 import dev.kord.cache.api.DataCache
 import dev.kord.common.annotation.KordExperimental
@@ -12,14 +11,13 @@ import dev.kord.common.entity.optional.Optional
 import dev.kord.common.entity.optional.OptionalBoolean
 import dev.kord.core.ClientResources
 import dev.kord.core.Kord
-import dev.kord.core.builder.kord.Shards
 import dev.kord.core.event.Event
 import dev.kord.core.gateway.ShardEvent
 import dev.kord.core.gateway.handler.DefaultGatewayEventInterceptor
 import dev.kord.core.supplier.EntitySupplyStrategy
-import dev.kord.gateway.Intents
 import dev.kord.gateway.Ready
 import dev.kord.gateway.ReadyData
+import dev.kord.gateway.builder.Shards
 import dev.kord.rest.ratelimit.ExclusionRequestRateLimiter
 import dev.kord.rest.request.KtorRequestHandler
 import dev.kord.rest.request.RequestHandler
@@ -31,6 +29,7 @@ import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -45,23 +44,23 @@ suspend inline fun AmqpKord(
     token: String,
     totalShards: Int,
     amqpUri: String,
-    events: Array<EventBinding>,
     builder: AmqpKordBuilder.() -> Unit = {}
 ): Kord {
     contract { callsInPlace(builder, InvocationKind.EXACTLY_ONCE) }
-    return AmqpKordBuilder(token, totalShards, amqpUri, events).apply(builder).build()
+    return AmqpKordBuilder(token, totalShards, amqpUri).apply(builder).build()
 }
 
 class AmqpKordBuilder(
     private val token: String,
     private val totalShards: Int,
     private val amqpUri: String,
-    private val events: Array<EventBinding>
 ) {
 
     var cacheExchange: String = "cache"
 
     var eventExchange: String = "events"
+
+    var exchangeBindingWeight: Int = 100
 
     var eventFlow: MutableSharedFlow<Event> = MutableSharedFlow(extraBufferCapacity = Int.MAX_VALUE)
 
@@ -84,7 +83,7 @@ class AmqpKordBuilder(
     suspend fun build(): Kord {
         val amqp = AmqpWrapper.create(amqpUri, cacheExchange, requestTimeoutMillis)
         val amqpGateway = AmqpGateway(amqp)
-        amqp.eventConsumer(amqpGateway, shardEventFlow, eventExchange, events)
+        amqp.eventConsumer(amqpGateway, shardEventFlow, eventExchange, exchangeBindingWeight)
 
         val selfId = getBotIdFromToken(token)
 
@@ -96,8 +95,7 @@ class AmqpKordBuilder(
             selfId,
             Shards(0),
             httpClient.configure(token),
-            defaultStrategyBuilder.invoke(amqp),
-            Intents.none
+            defaultStrategyBuilder.invoke(amqp)
         )
 
         val rest = RestClient(handlerBuilder(resources))
@@ -140,12 +138,12 @@ class AmqpKordBuilder(
             defaultDispatcher,
         ) {
             DefaultGatewayEventInterceptor(cache) { event, kord ->
-                RequestMeta(
+                CoroutineScope(RequestMeta(
                     ContextKeys.REQUEST_META_KEY,
                     event.getGuildId(),
                     event.shard,
                     kord.selfId
-                ) + EventCache(ContextKeys.EVENT_CACHE)
+                ) + EventCache(ContextKeys.EVENT_CACHE))
             }
         }
     }

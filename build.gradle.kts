@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "bot.zerotwo"
-version = "0.1.0"
+version = "0.1.1"
 
 
 configure<JavaPluginExtension> {
@@ -38,9 +38,8 @@ dependencies {
     implementation("com.rabbitmq:amqp-client:5.13.1")
 
     // Kord
-    //implementation("dev.kord:kord-core:0.8.0-M5")
     //implementation("dev.kord:kord-core:zerotwo-SNAPSHOT")
-    implementation("dev.kord:kord-core:0.8.x-SNAPSHOT")
+    implementation("dev.kord:kord-core:0.8.0-M7")
 }
 
 tasks.test {
